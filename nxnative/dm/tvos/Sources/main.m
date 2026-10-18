@@ -1,7 +1,6 @@
 // tvOS entry point. Game resources are bundled; writable state uses Caches.
 #import <UIKit/UIKit.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,9 +52,6 @@ static void boot_environment(void) {
 int front_tv_boot_ok(void) { return boot_ok; }
 static void *guest_thread(void *unused) {
     (void)unused;
-    static char alternate_stack[65536];
-    stack_t ss = {.ss_sp = alternate_stack, .ss_size = sizeof alternate_stack};
-    sigaltstack(&ss, NULL);
     int result = dm_main(2, guest_argv);
     fprintf(stderr, "boot: guest returned %d\n", result);
     return NULL;

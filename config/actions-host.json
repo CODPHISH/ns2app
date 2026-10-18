@@ -84,7 +84,7 @@
     "nxnative/dm/gfx/tex/nvn_fmt_mtl.h": "2de49a9ebd4a863c6b4d0fd1be4acd729f582786b10a6eb12412beed83a74bf9",
     "nxnative/dm/gfx/vk/hle_vk.m": "299f16b60d6ecea8819ce1d35790f353dbfad8e0eb1fcba5116b2c07875fabd7",
     "nxnative/dm/host/Makefile": "b1f216d5e4ff162a27a1fcd13050e4daaaeb449b7f3a40ae3d1a20054c05a2a9",
-    "nxnative/dm/host/crash.c": "a8ce294d0cf2e2c084712b9182a82a29fb050aca0b00e4c30aea55fac6662c4f",
+    "nxnative/dm/host/crash.c": "c599f8485ae30b7f7e2179b0ddc26619dce2f1ab084020da6f0812c9a0e25f09",
     "nxnative/dm/host/dm.h": "ba6546b82d2c04a73550efdcd358bf394e21adaa4524455ea0a42578d1f94b94",
     "nxnative/dm/host/dm_actions.h": "703851615ad0abf305496857f4f3513d306647c0d6639aeab6bba7fc695c21a7",
     "nxnative/dm/host/dm_bossrush.h": "02a2a6bc43cbd155683e9db37cc45196e7c7fa6705563661d7be45e2b9b44f04",
@@ -382,7 +382,7 @@
     "nxnative/dm/third_party/vulkan-headers/include/vulkan/vulkan_core.h": "2f64fd6c7c3f342b0e44f039f1c359b7f0e6cfcb71a7dca1cc5156282faa3b51",
     "nxnative/dm/third_party/vulkan-headers/include/vulkan/vulkan_vi.h": "a53e35bb1b3113e6ef4932cb9358a27861a198d7865227ecd93555fecc73dd68",
     "nxnative/dm/tvos/Sources/front_tvos.m": "85a27e5e087c56e68ae3f0e608abd6b5fd7345bf65d353bb5a76b56791ff3c1b",
-    "nxnative/dm/tvos/Sources/main.m": "bf7baa14fb8ee4d99954ee36503c7a4d8d5e6b47e3aeaacabc354664c31a19f5",
+    "nxnative/dm/tvos/Sources/main.m": "7a2034afd9af08a98497c34542408591d53f03c8bf29af4c468020be8662425e",
     "nxnative/dm/tvos/Sources/msl_source.c": "1b3ef8bca7acd1fc59d901a23c058ca3fcfa77c06ed778c8b62071ce5c1cb521",
     "nxnative/dm/tvos/Sources/msl_source.h": "c7a77903e2a7dda34243ebf3354e5409acae89766bc9bb3f30b5b7daccf13765",
     "scripts/wonder_actions.py": "98d26c6ff6abdf4bf5ed6f32e0bc66dc4db10bb4d4d78d2b67a9b9f4d899f57a"
