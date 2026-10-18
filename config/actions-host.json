@@ -386,7 +386,7 @@
     "nxnative/dm/third_party/vulkan-headers/include/vulkan/vulkan_vi.h": "a53e35bb1b3113e6ef4932cb9358a27861a198d7865227ecd93555fecc73dd68",
     "nxnative/dm/tvos/Sources/front_tvos.m": "66ad33a3f71a46ca3e6e4e9839c5efc2e489331980babbba535921c187bd5704",
     "nxnative/dm/tvos/Sources/haptics.h": "a7e877fcd49ac2b69698d5c938fad31ae8aec25ef9e150253f4da01e9e5f0758",
-    "nxnative/dm/tvos/Sources/haptics.m": "9fe8e6497851ecb0bedf6d3307d3a882fa76b2d957ce7c116a2ce327c4a1c9b9",
+    "nxnative/dm/tvos/Sources/haptics.m": "742efde3138527aaf6f02b6f48fd2e53c94406f29ae6ab14fc91cf52e4dc8853",
     "nxnative/dm/tvos/Sources/main.m": "27d6e5eb745a72a637643966cc428dfbbcd043f6fa7e7003765c5648b95bfabc",
     "nxnative/dm/tvos/Sources/msl_source.c": "1b3ef8bca7acd1fc59d901a23c058ca3fcfa77c06ed778c8b62071ce5c1cb521",
     "nxnative/dm/tvos/Sources/msl_source.h": "c7a77903e2a7dda34243ebf3354e5409acae89766bc9bb3f30b5b7daccf13765",
@@ -394,7 +394,7 @@
     "nxnative/dm/tvos/Sources/vibration_hle.c": "c9d49cc7e698876bc981d4ec8ef3082486bc74d369f9995b3f110a5e349a76e2",
     "scripts/wonder_actions.py": "39c4bb91ca6c077c49543cf5fc18b17f159df258addeb0fce8271b53b990f1e3",
     "tests/native/wonder_audio_lifecycle.c": "6f80b04a6c5c2d9c28e96185b505baacf215e390e19386562555682ab14a0f5f",
-    "tests/native/wonder_haptics_lifecycle.m": "a0ae4ea024590f9a43226812ec7dbf9eec35d83715b4d28320a74c65657d1db0",
+    "tests/native/wonder_haptics_lifecycle.m": "b2e767a8949c1ce5470b5fdcaa9fe46d547748bad16b952fe65404ee50118349",
     "tests/native/wonder_vibration_clock.c": "0c2c14134901d848dba15ce15903d45e3239c9904ff50dcb9756efc20eb99916",
     "tests/test_wonder_lifecycle.py": "582457ac6be2617f02fedfe953d2fcea1359f5abf24ed699c66e0c1005616261"
   },

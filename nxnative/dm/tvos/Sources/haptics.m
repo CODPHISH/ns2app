@@ -69,7 +69,8 @@ static void stop_side(TVHapticSide *side) {
 static void destroy_sides(void) {
     for (int i = 0; i < 2; ++i) {
         TVHapticSide *side = sides[i];
-        side.engine.stoppedHandler = nil; side.engine.resetHandler = nil;
+        side.engine.stoppedHandler = ^(CHHapticEngineStoppedReason reason) { (void)reason; };
+        side.engine.resetHandler = ^{};
         stop_side(side); [side.engine stopWithCompletionHandler:nil]; sides[i] = nil;
     }
 }

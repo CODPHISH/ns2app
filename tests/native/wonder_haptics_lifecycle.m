@@ -80,7 +80,7 @@ static TestEngine *setup(void) {
     assert(dm_vibration_mounted(3));
     return engine;
 }
-static void send(float low, float high) {
+static void submit_vibration(float low, float high) {
     uint32_t handle = 3;
     dm_vibration_value value = {low, 160, high, 320};
     dm_vibration_send(&handle, &value, 1);
@@ -109,7 +109,7 @@ int main(int argc, const char **argv) {
         TestEngine *engine = setup();
         if (!strcmp(argv[1], "retry")) {
             engine.failAfterFirstPlayer = YES;
-            send(0.5, 0.8);
+            submit_vibration(0.5, 0.8);
             // A healthy low player must not reset the failing high band's budget.
             usleep(2100000); flush();
             dispatch_sync(haptic_queue, ^{
@@ -118,9 +118,9 @@ int main(int argc, const char **argv) {
             });
         } else if (!strcmp(argv[1], "spacing") || !strcmp(argv[1], "cancel-timer")) {
             dispatch_semaphore_t resume = hold_queue();
-            send(0.7, 0); usleep(20000);
-            send(0, 0); usleep(20000);
-            send(0.7, 0);
+            submit_vibration(0.7, 0); usleep(20000);
+            submit_vibration(0, 0); usleep(20000);
+            submit_vibration(0.7, 0);
             dispatch_semaphore_signal(resume);
             if (!strcmp(argv[1], "spacing")) {
                 wait_for_starts(2);
@@ -138,14 +138,14 @@ int main(int argc, const char **argv) {
         } else if (!strcmp(argv[1], "cancel-start")) {
             engine.enteredStart = dispatch_semaphore_create(0);
             engine.continueStart = dispatch_semaphore_create(0);
-            send(0.8, 0.9);
+            submit_vibration(0.8, 0.9);
             assert(!dispatch_semaphore_wait(engine.enteredStart, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC)));
             front_tv_haptics_active(0); // Invalidate from the main thread while the OS start is blocked.
             dispatch_semaphore_signal(engine.continueStart);
             flush(); flush();
             dispatch_sync(haptic_queue, ^{ assert(!player_creations && !player_starts); });
         } else if (!strcmp(argv[1], "reset")) {
-            send(0.8, 0.9); wait_for_starts(2);
+            submit_vibration(0.8, 0.9); wait_for_starts(2);
             engine.resetHandler(); flush();
             dispatch_sync(haptic_queue, ^{ assert(player_starts == 4 && player_stops == 2); });
             front_tv_haptics_active(0); flush();
