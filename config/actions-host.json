@@ -27,22 +27,22 @@
       "sdk": "e4bd58cac28cf13a08fb417aa013cdcb"
     }
   },
-  "shader_chain": "43e5d57e84e6",
+  "shader_chain": "db86c3a21900",
   "shader_mode": "device-source-compilation",
   "shader_storage": "DMZ1-zlib",
   "profile_sha256": {
     "game.tsv": "09c0eafa6e66231a26050c4fcd991b30c65234d010f059c5138a3acc18f953de",
     "shader_map.tsv": "b3e725f705739d9fcd30837ba49d8478f40d31690709b6f2f64407be752e2763",
     "pso_manifest.tsv": "3a7b5907280bdd294bf224c462b26497cc1b6acc49b0d7c22855c9b474a8ff77",
-    "c1_full.tsv": "18beab2a0260872933aabba703cf89c449b655b734f93345080976c3eb9426b6"
+    "c1_full.tsv": "1bedf94a46b7b8a2b77d2b941e38f8324eeb378be80e9b4ccdca4b3092e2c98a"
   },
   "files_sha256": {
     ".github/workflows/build-wonder-host.yml": "68da1117dc5dcf09a6c0f1f9ad0b330649f0252e8a9bd1bcc9c54e4974609836",
     ".gitignore": "70fe36b8bdf3c2e30e8e679c7bc513a0caa5cccf61ccc0b5c4419d8f62e45d48",
-    "README.md": "7c4e24b6cdc4c70598b843ab57d3de1a348d110ea236990c1b299afe7ca9fc01",
+    "README.md": "ac96de0108bc9961161f62cb5fac072bd63a6d6aef74588eb8bc3ffb18f646ef",
     "config/appletv4k3.json": "279980b6a9288e3283f07c30b743d6dc00d0749a00ef29b74856dd912966f4b7",
     "nxnative/LICENSE": "5811600bb8fc4522d3310e8e0e637a1bb14b7c64412f8cfc6234872eb53129b9",
-    "nxnative/dm/games/010015100B514000/dmsh_chain.h": "4303c29233f128461a5893332c14b305c28a0644e21457af5e7e6172db540830",
+    "nxnative/dm/games/010015100B514000/dmsh_chain.h": "6868464ae01c2a2c6e6662fe5a8a1e9c083fe70839caf29471cec2e991faaf2f",
     "nxnative/dm/games/010015100B514000/game.tsv": "09c0eafa6e66231a26050c4fcd991b30c65234d010f059c5138a3acc18f953de",
     "nxnative/dm/games/game.py": "b84ea9512e1ce4fca29510c62f017139288301d5894ca6e4d3f9c7052ef5a052",
     "nxnative/dm/gfx/hle_nv.c": "35c96613e42062736288ba022313343b0f644faa9bbc31192e716e06c6a19c1c",
@@ -385,19 +385,8 @@
     "nxnative/dm/tvos/Sources/main.m": "7a2034afd9af08a98497c34542408591d53f03c8bf29af4c468020be8662425e",
     "nxnative/dm/tvos/Sources/msl_source.c": "1b3ef8bca7acd1fc59d901a23c058ca3fcfa77c06ed778c8b62071ce5c1cb521",
     "nxnative/dm/tvos/Sources/msl_source.h": "c7a77903e2a7dda34243ebf3354e5409acae89766bc9bb3f30b5b7daccf13765",
-    "scripts/wonder_actions.py": "98d26c6ff6abdf4bf5ed6f32e0bc66dc4db10bb4d4d78d2b67a9b9f4d899f57a"
+    "scripts/wonder_actions.py": "5c5eeb36d141ee24d21afdb552d97bb3cd5f26962dc72b7b6fc5b3e7916b99b2"
   },
   "unsupported_entry_points": [],
-  "untranslated_shaders": [
-    {
-      "key": "b940aa86d8939c47",
-      "st": "MSL 失败",
-      "err": "SPIRV-Cross threw an exception: nullptr"
-    },
-    {
-      "key": "dfe7662fd03a0e42",
-      "st": "MSL 失败",
-      "err": "SPIRV-Cross threw an exception: nullptr"
-    }
-  ]
+  "untranslated_shaders": []
 }

@@ -7,6 +7,7 @@ This repository and its artifacts contain no game code, resources, keys, fonts o
 The host alone cannot run the game; game data is added locally with scripts/wonder_actions.py pack in the WSL project.
 720p game rendering, 1080p presentation, one system-paired extended gamepad (including DualSense).
 Saves use purgeable tvOS cache; this preview does not provide durable cloud saves.
-Two known upstream AGL compute shaders remain untranslated; effects using them are unverified.
+All 16,268 shader entries translate locally, including the repaired dynamic-offset AGL compute shaders.
+Metal compilation and rendering of those private shaders still require device validation.
 Runtime sources: https://github.com/seedds/nxnative and BC decoder from https://github.com/seedds/d2r-mobile.
 Source license notices are retained.

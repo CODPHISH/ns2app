@@ -111,7 +111,8 @@ def export_project(args):
         'The host alone cannot run the game; game data is added locally with scripts/wonder_actions.py pack in the WSL project.\n'
         '720p game rendering, 1080p presentation, one system-paired extended gamepad (including DualSense).\n'
         'Saves use purgeable tvOS cache; this preview does not provide durable cloud saves.\n'
-        'Two known upstream AGL compute shaders remain untranslated; effects using them are unverified.\n'
+        'All 16,268 shader entries translate locally, including the repaired dynamic-offset AGL compute shaders.\n'
+        'Metal compilation and rendering of those private shaders still require device validation.\n'
         'Runtime sources: https://github.com/seedds/nxnative and BC decoder from https://github.com/seedds/d2r-mobile.\n'
         'Source license notices are retained.\n')
     files = {str(p.relative_to(dest)): sha(p) for p in sorted(dest.rglob('*')) if p.is_file()}

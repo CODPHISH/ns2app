@@ -1,2 +1,2 @@
 // 生成文件（dm/gfx/tools/dmsh_chain.py --header，游戏 010015100B514000）：本源码树期望的 B 着色器库翻译链版本（缺省选项）；宿主只加载 <库目录>/b-<V>/
-#define DMSH_CHAIN "43e5d57e84e6"
+#define DMSH_CHAIN "db86c3a21900"
