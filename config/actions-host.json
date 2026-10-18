@@ -394,7 +394,7 @@
     "nxnative/dm/tvos/Sources/vibration_hle.c": "c9d49cc7e698876bc981d4ec8ef3082486bc74d369f9995b3f110a5e349a76e2",
     "scripts/wonder_actions.py": "39c4bb91ca6c077c49543cf5fc18b17f159df258addeb0fce8271b53b990f1e3",
     "tests/native/wonder_audio_lifecycle.c": "6f80b04a6c5c2d9c28e96185b505baacf215e390e19386562555682ab14a0f5f",
-    "tests/native/wonder_haptics_lifecycle.m": "b2e767a8949c1ce5470b5fdcaa9fe46d547748bad16b952fe65404ee50118349",
+    "tests/native/wonder_haptics_lifecycle.m": "ef02468dd5c4d22c6165d7b8bf331a0e50092e9a5719b874abf63c2ea4b10481",
     "tests/native/wonder_vibration_clock.c": "0c2c14134901d848dba15ce15903d45e3239c9904ff50dcb9756efc20eb99916",
     "tests/test_wonder_lifecycle.py": "582457ac6be2617f02fedfe953d2fcea1359f5abf24ed699c66e0c1005616261"
   },
