@@ -1,0 +1,40 @@
+# Experimental bring-up profile; no Apple host or device validation yet.
+# Target: iPhone 13 Pro / A15, requested iOS 27.0.1.
+
+# ---- Identity ----
+title_id	010013C00E930000
+program_id	010013C00E930000
+
+# ---- App ----
+name	Hollow Knight: Silksong
+ipa	HollowKnightSilksong.ipa
+app_category	public.app-category.games
+pad_layout	simple
+
+# ---- Versions ----
+build	v655360	1.0.30000	main=fc9ea4ccc955d5799f37752b2d730b31	subsdk0=c89c804fc3b26757661a70fc125aa923	sdk=e01950c58e17b080c90494784ea1dd29
+package	v655360
+shader_versions	v655360
+
+# ---- Files ----
+modules	main subsdk0 sdk
+romfs_marker	Data/StreamingAssets/aa/Switch/tk2dcollections_assets_areacoral.bundle
+zip_store	.assets:.bin:.bundle:.dat:.mp4:.ress:.metallib
+
+# ---- Provisional memory partition: runtime measurements still required ----
+mem_reserve	0x140000000
+mem_alias	0x118000000
+mem_stack	0x10000000
+app_pool	0xA0000000
+
+# ---- NVN handles measured from the 1.0.30000 shader corpus ----
+nvn_tex_base	0x168
+nvn_tex_slots	128
+nvn_samp_base	0x568
+nvn_img_base	0x120
+nvn_img_slots	8
+nvn_ssbo_bases	vs=0x110 ps=0x510 cs=0x310
+
+# ---- Shader split ----
+shader_groups	/Data/=data
+shader_note	Hollow Knight: Silksong 1.0.30000 Unity 6000.0.50f1

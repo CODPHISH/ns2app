@@ -1,0 +1,20 @@
+{
+  "game": "Hollow Knight: Silksong",
+  "title_id": "010013C00E930000",
+  "version": "1.0.30000",
+  "package": "v655360",
+  "device": "iPhone 13 Pro",
+  "device_identifier": "iPhone14,2",
+  "cpu": "apple-a15",
+  "requested_os": "27.0.1",
+  "deployment_minimum": "26.0",
+  "orientation": "landscape",
+  "operation_mode": "handheld",
+  "controls": "simple",
+  "status": "experimental-unvalidated",
+  "build_ids": {
+    "main": "fc9ea4ccc955d5799f37752b2d730b31",
+    "subsdk0": "c89c804fc3b26757661a70fc125aa923",
+    "sdk": "e01950c58e17b080c90494784ea1dd29"
+  }
+}
