@@ -10,13 +10,20 @@
 #include "dm_input.h"
 #include "hle.h"
 #include "dm.h"
+#include "haptics.h"
 
 void front_tv_boot(void);
 int front_tv_boot_ok(void);
 static CAMetalLayer *game_layer;
 static GCController *active_controller;
-static BOOL app_active, modal_active;
-static void reset_pad(void) { dm_pad_set(0, 0, 0, 0, 0); }
+static BOOL app_active, app_background, modal_active, audio_interrupted, media_lost;
+static BOOL save_warning_pending;
+static void present_save_warning(void);
+void front_tv_audio_session(void);
+static BOOL gameplay_held(void) {
+    return !app_active || app_background || modal_active || !active_controller || audio_interrupted || media_lost;
+}
+static void reset_pad(void) { dm_pad_reset(); }
 
 @interface TVGameView : UIView
 @end
@@ -49,7 +56,7 @@ static int32_t axis(float value) {
 }
 static void publish_pad(void) {
     GCExtendedGamepad *pad = active_controller.extendedGamepad;
-    if (!app_active || modal_active || !pad) { reset_pad(); return; }
+    if (gameplay_held() || !pad) { reset_pad(); return; }
     uint64_t buttons = 0;
 #define BUTTON(input, bit) if ((input).isPressed) buttons |= (bit)
     // Match physical positions: DualSense circle=A, cross=B, triangle=X, square=Y.
@@ -66,10 +73,17 @@ static void publish_pad(void) {
                axis(pad.rightThumbstick.xAxis.value), axis(pad.rightThumbstick.yAxis.value));
 }
 static void route_controller(void) {
-    // A gamepad must not drive UIKit focus/Home while it drives the game.
-    root.controllerUserInteractionEnabled = modal_active || !app_active;
-    if (app_active && !modal_active) [root.game becomeFirstResponder];
+    BOOL hold = gameplay_held();
+    root.controllerUserInteractionEnabled = hold;
+    if (!hold) [root.game becomeFirstResponder];
     reset_pad();
+    front_tv_haptics_active(!hold);
+    dm_focus_set(app_background ? 3 : hold ? 2 : 1);
+    dm_audio_suspend(hold);
+    // This reason composes with the SDK keyboard and diagnostic clock holds.
+    guest_clock_freeze_for(3, hold);
+    static int last_hold = -1;
+    if (last_hold != hold) { last_hold = hold; dm_gfx_suspend(hold); }
 }
 static void choose_controller(void) {
     if (active_controller && ![GCController.controllers containsObject:active_controller]) {
@@ -92,11 +106,21 @@ static void choose_controller(void) {
         }
     }
     root.controllerHint.hidden = active_controller != nil;
-    publish_pad();
+    front_tv_haptics_select(active_controller);
+    route_controller();
 }
 static void end_modal(void) {
-    // UIAlertController finishes dismissing after its action handler returns.
-    dispatch_async(dispatch_get_main_queue(), ^{ modal_active = NO; route_controller(); });
+    // Resume after UIKit has actually dismissed the alert, then display a
+    // queued storage error instead of dropping it behind another modal.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        void (^finished)(void) = ^{ modal_active = NO; route_controller(); present_save_warning(); };
+        UIViewController *presented = root.presentedViewController;
+        if (!presented) { finished(); return; }
+        id<UIViewControllerTransitionCoordinator> transition = presented.transitionCoordinator;
+        if (presented.isBeingDismissed && transition &&
+            [transition animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) { finished(); }]) return;
+        [root dismissViewControllerAnimated:YES completion:finished];
+    });
 }
 @implementation TVRoot
 - (void)viewDidLoad {
@@ -118,9 +142,34 @@ static void end_modal(void) {
     [self.view addSubview:self.controllerHint];
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(controllerChanged:) name:GCControllerDidConnectNotification object:nil];
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(controllerChanged:) name:GCControllerDidDisconnectNotification object:nil];
-    choose_controller(); route_controller();
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(audioInterrupted:) name:AVAudioSessionInterruptionNotification object:nil];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(mediaLost:) name:AVAudioSessionMediaServicesWereLostNotification object:nil];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(mediaReset:) name:AVAudioSessionMediaServicesWereResetNotification object:nil];
+    choose_controller();
 }
-- (void)controllerChanged:(NSNotification *)notification { choose_controller(); }
+- (void)controllerChanged:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{ choose_controller(); });
+}
+- (void)audioInterrupted:(NSNotification *)notification {
+    NSUInteger type = [notification.userInfo[AVAudioSessionInterruptionTypeKey] unsignedIntegerValue];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        audio_interrupted = type == AVAudioSessionInterruptionTypeBegan;
+        if (!audio_interrupted && app_active && !media_lost) front_tv_audio_session();
+        route_controller();
+    });
+}
+- (void)mediaLost:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{ media_lost = YES; route_controller(); });
+}
+- (void)mediaReset:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        media_lost = YES; route_controller();
+        dm_audio_reset(); front_tv_haptics_reset();
+        media_lost = NO; audio_interrupted = NO;
+        if (app_active) front_tv_audio_session();
+        route_controller();
+    });
+}
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     CGRect bounds = self.view.bounds;
@@ -167,28 +216,38 @@ int front_text_input(const char *title, const char *sub, const char *guide, cons
     if (accepted) snprintf(out, out_cap, "%s", text.UTF8String ?: "");
     return accepted;
 }
+static void present_save_warning(void) {
+    if (!save_warning_pending || !app_active || !root || !root.view.window || modal_active || root.presentedViewController) return;
+    save_warning_pending = NO;
+    modal_active = YES; route_controller();
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"存档失败 / Save failed" message:@"进度未保存，请检查 Apple TV 的可用空间。\nProgress was not saved. Check available storage." preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"确定 / OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { end_modal(); }]];
+    [root presentViewController:alert animated:YES completion:nil];
+}
 void front_save_failed(int error) {
     dispatch_async(dispatch_get_main_queue(), ^{
         fprintf(stderr, "save: failed errno=%d\n", error);
-        if (!root || root.presentedViewController) return;
-        modal_active = YES; route_controller();
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"存档失败 / Save failed" message:@"进度未保存，请检查 Apple TV 的可用空间。\nProgress was not saved. Check available storage." preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"确定 / OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { end_modal(); }]];
-        [root presentViewController:alert animated:YES completion:nil];
+        save_warning_pending = YES; present_save_warning();
     });
 }
 void front_tv_audio_session(void) {
     AVAudioSession *session = AVAudioSession.sharedInstance;
-    [session setCategory:AVAudioSessionCategoryPlayback error:nil];
-    [session setPreferredSampleRate:48000 error:nil];
-    [session setPreferredIOBufferDuration:0.005 error:nil];
-    [session setActive:YES error:nil];
+    NSError *error = nil;
+    if (![session setCategory:AVAudioSessionCategoryPlayback error:&error] ||
+        ![session setPreferredSampleRate:48000 error:&error] ||
+        ![session setPreferredIOBufferDuration:0.005 error:&error] ||
+        ![session setActive:YES error:&error])
+        fprintf(stderr, "audio: session activation failed: %s\n", error.localizedDescription.UTF8String);
 }
 void front_tv_focus_event(int event) {
     switch (event) {
-        case 0: app_active = NO; route_controller(); dm_focus_set(2); break;
-        case 1: reset_pad(); dm_focus_set(3); dm_audio_suspend(1); guest_clock_freeze_for(1, 1); dm_gfx_suspend(1); break;
-        case 2: dm_gfx_suspend(0); guest_clock_freeze_for(1, 0); front_tv_audio_session(); dm_audio_suspend(0); dm_focus_set(2); break;
-        case 3: app_active = YES; route_controller(); choose_controller(); dm_focus_set(1); break;
+        case 0: app_active = NO; break;
+        case 1: app_active = NO; app_background = YES; break;
+        case 2: app_background = NO; break;
+        case 3:
+            app_background = NO; app_active = YES;
+            if (!audio_interrupted && !media_lost) front_tv_audio_session();
+            choose_controller(); present_save_warning(); return;
     }
+    route_controller();
 }

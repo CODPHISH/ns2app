@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "game_profile.h"
 #include "front.h"
+#include "haptics.h"
 
 int dm_main(int argc, char **argv);
 UIViewController *front_tv_root(void);
@@ -54,6 +55,7 @@ static void *guest_thread(void *unused) {
     (void)unused;
     int result = dm_main(2, guest_argv);
     fprintf(stderr, "boot: guest returned %d\n", result);
+    dispatch_async(dispatch_get_main_queue(), ^{ front_tv_haptics_active(0); });
     return NULL;
 }
 void front_tv_boot(void) {

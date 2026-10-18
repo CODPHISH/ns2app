@@ -57,6 +57,7 @@ void dm_set_opmode(int m);          // On change, push notification 30 / 31 acco
 void dm_focus_set(int st);
 // Audio pause / resume following the lifecycle (called by the front end on going to background / returning to foreground)
 void dm_audio_suspend(int on);
+void dm_audio_reset(void);
 uint64_t dm_audio_render_calls(void);   // Cumulative sound card callback count (the silent sink is not counted)
 
 // ---------- Host call number registry (a cut replaces a game-internal function entry with `svc #number; ret`, and the rewriter turns it into a host gate) ----------

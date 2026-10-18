@@ -23,6 +23,7 @@ typedef struct {
     gbuf *rel[RELMAX]; _Atomic uint32_t rel_head, rel_tail; // Released: written by the output side, read by the game side
     uint64_t pos;                      // Bytes already played of the current block
     AudioUnit au;
+    int real_running;                  // Protected by g_aos_lock, as is AudioUnit lifetime.
     pthread_t null_th; _Atomic int null_run;
     dispatch_semaphore_t notify_sem;
     pthread_t notify_th; _Atomic int notify_run, notify_pending, notify_armed;
@@ -117,7 +118,7 @@ static OSStatus au_render(void *ctx, AudioUnitRenderActionFlags *f, const AudioT
       if (mute) memset(bl->mBuffers[0].mData, 0, bl->mBuffers[0].mDataByteSize); }
     return noErr;
 }
-static void au_open(aout *a) {
+static int au_open(aout *a) {
     AudioComponentDescription d = {.componentType = kAudioUnitType_Output,
 #if TARGET_OS_IPHONE
                                    .componentSubType = kAudioUnitSubType_RemoteIO,
@@ -126,7 +127,7 @@ static void au_open(aout *a) {
 #endif
                                    .componentManufacturer = kAudioUnitManufacturer_Apple};
     AudioComponent c = AudioComponentFindNext(NULL, &d);
-    if (!c || AudioComponentInstanceNew(c, &a->au)) die("AudioUnit 建不出来");
+    if (!c || AudioComponentInstanceNew(c, &a->au)) { a->au = NULL; return 0; }
     AudioStreamBasicDescription f = {.mSampleRate = RATE, .mFormatID = kAudioFormatLinearPCM,
                                      .mFormatFlags = kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
                                      .mBytesPerPacket = 2u * a->ch, .mFramesPerPacket = 1, .mBytesPerFrame = 2u * a->ch,
@@ -139,7 +140,10 @@ static void au_open(aout *a) {
 #endif
     if (AudioUnitSetProperty(a->au, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &f, sizeof f) ||
         AudioUnitSetProperty(a->au, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &cb, sizeof cb) ||
-        AudioUnitInitialize(a->au)) die("AudioUnit 设置失败");
+        AudioUnitInitialize(a->au)) {
+        AudioComponentInstanceDispose(a->au); a->au = NULL; return 0;
+    }
+    return 1;
 }
 // Silent sink: consumes in real time at 48 kHz every 5 ms. When more than 100 ms behind (iOS suspended the whole process in the background, SIGSTOP on the Mac), restart the count from now and do not make up the missed time --
 // making it up would pull hundreds of times in one go (seconds' worth), releasing all of the game's buffers and logging hundreds of underruns; a suspended console does not play that stretch either
@@ -154,6 +158,34 @@ static void *null_sink(void *p) {
     return NULL;
 }
 static int real_audio(void) { const char *e = getenv("DM_AUDIO"); return e ? atoi(e) != 0 : TARGET_OS_IPHONE; }
+
+// All output ownership changes use the registry lock. Only one consumer may
+// pull PCM at a time, including partial failures and media-service restarts.
+static void sink_stop(aout *a) {
+    if (atomic_exchange(&a->null_run, 0)) pthread_join(a->null_th, NULL);
+}
+static void sink_start(aout *a) {
+    if (atomic_exchange(&a->null_run, 1)) return;
+    int error = pthread_create(&a->null_th, NULL, null_sink, a);
+    if (error) die("audio silent sink thread failed: %d", error);
+}
+static void output_stop(aout *a) {
+    if (a->real_running) { AudioOutputUnitStop(a->au); a->real_running = 0; }
+    sink_stop(a);
+}
+static void output_reconcile(aout *a) {
+    if (atomic_load(&a->state) != STATE_STARTED) { output_stop(a); return; }
+    if (g_suspended || !real_audio()) {
+        if (a->real_running) { AudioOutputUnitStop(a->au); a->real_running = 0; }
+        sink_start(a); return;
+    }
+    if (a->real_running) return;
+    if (!a->au && !au_open(a)) { sink_start(a); return; }
+    sink_stop(a);
+    OSStatus status = AudioOutputUnitStart(a->au);
+    if (!status) a->real_running = 1;
+    else { LOG("【红】AudioUnit start failed (%d); silent sink remains active", (int)status); sink_start(a); }
+}
 
 // AudioOutParameter = { int32 sampleRate; uint16 channelCount; uint16 _r; ... }, 0 = system default (48 kHz / 2 channels)
 HLE_FORCE("_ZN2nn5audio27InitializeAudioOutParameterEPNS0_17AudioOutParameterE", "音频输出参数默认值", void, h_au_InitParam, uint8_t *p) { memset(p, 0, 8); }
@@ -181,11 +213,11 @@ static Result au_open_at(void *g, void *ev, const char *name, const uint8_t *par
     pthread_mutex_lock(&g_aos_lock);
     int slot = -1; for (int i = 0; i < AOMAX; i++) if (!g_aos[i]) { slot = i; break; }
     if (slot < 0) die("AudioOut 同时打开超过 %d 个", AOMAX);
+    if (real_audio() && !g_suspended && !au_open(a)) LOG("【红】AudioUnit unavailable; retry on start/resume");
     g_aos[slot] = a;
     pthread_mutex_unlock(&g_aos_lock);
     char sb[64];
     LOG("audio #%d OpenAudioOut %s 声道 %d %s%s（调用点 %s）", a->id, name ? name : "(默认)", ch, real_audio() ? "真出声" : "静音接收端", ev ? "" : "，无释放事件（游戏轮询）", site(lr, sb, sizeof sb));
-    if (real_audio()) au_open(a);
     return RES_OK;
 }
 HLE_FORCE("_ZN2nn5audio12OpenAudioOutEPNS0_8AudioOutEPNS_2os11SystemEventEPKcRKNS0_17AudioOutParameterE", "连 audout 服务；宿主 AudioUnit / 静音接收端",
@@ -197,22 +229,21 @@ HLE_FORCE("_ZN2nn5audio19OpenDefaultAudioOutEPNS0_8AudioOutERKNS0_17AudioOutPara
           Result, h_au_OpenDef0, void *g, const uint8_t *param) { return au_open_at(g, NULL, NULL, param, __builtin_return_address(0)); }
 static Result au_start_at(void *g, void *lr) {
     aout *a = ao(g);
+    pthread_mutex_lock(&g_aos_lock);
     pthread_mutex_lock(&a->m); int was = atomic_load_explicit(&a->state, memory_order_relaxed); atomic_store_explicit(&a->state, STATE_STARTED, memory_order_release); pthread_mutex_unlock(&a->m);
     au_note(a, was == STATE_STARTED ? "Start（已在播）" : g_suspended ? "Start（App 在后台：先由静音接收端接手）" : "Start", lr);
-    if (was == STATE_STARTED) return RES_OK;
-    if (a->au && !g_suspended) { if (AudioOutputUnitStart(a->au)) die("AudioUnit 启动失败"); }
-    else { atomic_store_explicit(&a->null_run, 1, memory_order_release); pthread_create(&a->null_th, NULL, null_sink, a); }
+    output_reconcile(a);
+    pthread_mutex_unlock(&g_aos_lock);
     return RES_OK;
 }
 HLE_FORCE("_ZN2nn5audio13StartAudioOutEPNS0_8AudioOutE", "开始播放", Result, h_au_Start, void *g) { return au_start_at(g, __builtin_return_address(0)); }
 static void au_stop_at(void *g, void *lr) {   // lr NULL: the stop inside Close, not logged separately
     aout *a = ao(g);
+    pthread_mutex_lock(&g_aos_lock);
     pthread_mutex_lock(&a->m); int was = atomic_load_explicit(&a->state, memory_order_relaxed); atomic_store_explicit(&a->state, STATE_STOPPED, memory_order_release); pthread_mutex_unlock(&a->m);
     if (lr) au_note(a, was == STATE_STARTED ? "Stop" : "Stop（本来就停着）", lr);
-    if (was != STATE_STARTED) return;
-    pthread_mutex_lock(&g_aos_lock); int susp = g_suspended; pthread_mutex_unlock(&g_aos_lock);
-    if (a->au && !susp) AudioOutputUnitStop(a->au);
-    else { atomic_store_explicit(&a->null_run, 0, memory_order_release); pthread_join(a->null_th, NULL); }   // Silent sink (including one that took over during suspension)
+    output_stop(a);
+    pthread_mutex_unlock(&g_aos_lock);
 }
 HLE_FORCE("_ZN2nn5audio12StopAudioOutEPNS0_8AudioOutE", "停止播放", void, h_au_Stop, void *g) { au_stop_at(g, __builtin_return_address(0)); }
 HLE_FORCE("_ZN2nn5audio13CloseAudioOutEPNS0_8AudioOutE", "关闭音频输出", void, h_au_Close, void *g) {
@@ -224,8 +255,8 @@ HLE_FORCE("_ZN2nn5audio13CloseAudioOutEPNS0_8AudioOutE", "关闭音频输出", v
     pthread_join(a->notify_th, NULL);
     pthread_mutex_lock(&g_aos_lock);
     for (int i = 0; i < AOMAX; i++) if (g_aos[i] == a) g_aos[i] = NULL;
-    pthread_mutex_unlock(&g_aos_lock);
     if (a->au) { AudioUnitUninitialize(a->au); AudioComponentInstanceDispose(a->au); }
+    pthread_mutex_unlock(&g_aos_lock);
     dispatch_release(a->notify_sem);
     pthread_mutex_destroy(&a->m); free(a);
 }
@@ -278,21 +309,20 @@ void *dm_pcmout_released(void *k) { return h_au_Released(k); }
 // The front end calls with 1 on going to background / interruption began, and with 0 on returning to foreground / interruption ended (shouldResume).
 void dm_audio_suspend(int on) {
     pthread_mutex_lock(&g_aos_lock);
-    if (g_suspended != on) {
-        g_suspended = on; int failed = 0;
-        for (int i = 0; i < AOMAX; i++) {
-            aout *a = g_aos[i];
-            if (!a || !a->au || atomic_load_explicit(&a->state, memory_order_acquire) != STATE_STARTED) continue;
-            // While suspended the silent sink consumes in real time instead: otherwise buffers are no longer released, the FMOD output thread waits forever and the game's audio pacing stalls (same for an incoming call interruption)
-            if (on) { AudioOutputUnitStop(a->au); atomic_store_explicit(&a->null_run, 1, memory_order_release); pthread_create(&a->null_th, NULL, null_sink, a); }
-            else { atomic_store_explicit(&a->null_run, 0, memory_order_release); pthread_join(a->null_th, NULL);
-                   OSStatus st = AudioOutputUnitStart(a->au);
-                   if (st) {   // The session is still held by someone else (switched back to the game with a call not yet hung up, or the user is still in another app when the interruption ends): not fatal, the silent sink keeps covering, and we retry at the next resume
-                       LOG("【红】AudioUnit 恢复失败（状态 %d）：保持静音接收端，等下次恢复重试", (int)st);
-                       atomic_store_explicit(&a->null_run, 1, memory_order_release); pthread_create(&a->null_th, NULL, null_sink, a); failed = 1; } }
-        }
-        if (failed) g_suspended = 1;   // Resume did not succeed: the state stays "suspended", and the next call with 0 will retry
-        LOG("audio %s", on ? "暂停（切后台 / 被打断）" : failed ? "恢复未成" : "恢复（回前台 / 打断结束）");
+    g_suspended = !!on;
+    for (int i = 0; i < AOMAX; ++i) if (g_aos[i]) output_reconcile(g_aos[i]);
+    pthread_mutex_unlock(&g_aos_lock);
+}
+
+// AVAudioSession media-services reset invalidates AudioUnits. Preserve guest
+// buffers/events and rebuild only the OS output, with serialized consumers.
+void dm_audio_reset(void) {
+    pthread_mutex_lock(&g_aos_lock);
+    for (int i = 0; i < AOMAX; ++i) {
+        aout *a = g_aos[i]; if (!a) continue;
+        output_stop(a);
+        if (a->au) { AudioUnitUninitialize(a->au); AudioComponentInstanceDispose(a->au); a->au = NULL; }
+        output_reconcile(a);
     }
     pthread_mutex_unlock(&g_aos_lock);
 }

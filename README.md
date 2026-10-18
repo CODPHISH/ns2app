@@ -6,6 +6,7 @@ Use Actions → Build Wonder tvOS host → Run workflow. This branch is independ
 This repository and its artifacts contain no game code, resources, keys, fonts or translated game shaders.
 The host alone cannot run the game; game data is added locally with scripts/wonder_actions.py pack in the WSL project.
 720p game rendering, 1080p presentation, one system-paired extended gamepad (including DualSense).
+DualSense haptics preserve left/right and low/high-band envelopes through Core Haptics; frequency maps to sharpness.
 Saves use purgeable tvOS cache; this preview does not provide durable cloud saves.
 All 16,268 shader entries translate locally, including the repaired dynamic-offset AGL compute shaders.
 Metal compilation and rendering of those private shaders still require device validation.

@@ -110,6 +110,7 @@ def export_project(args):
         'This repository and its artifacts contain no game code, resources, keys, fonts or translated game shaders.\n'
         'The host alone cannot run the game; game data is added locally with scripts/wonder_actions.py pack in the WSL project.\n'
         '720p game rendering, 1080p presentation, one system-paired extended gamepad (including DualSense).\n'
+        'DualSense haptics preserve left/right and low/high-band envelopes through Core Haptics; frequency maps to sharpness.\n'
         'Saves use purgeable tvOS cache; this preview does not provide durable cloud saves.\n'
         'All 16,268 shader entries translate locally, including the repaired dynamic-offset AGL compute shaders.\n'
         'Metal compilation and rendering of those private shaders still require device validation.\n'
@@ -181,7 +182,7 @@ def build_host(args):
     with (output / 'source-list.log').open('w') as log:
         run([sys.executable, runtime / 'dm/ios/tools/gen_build.py', runtime / 'dm/host', gen], env=env, stdout=log)
     config = (output / 'source-list.log').read_text()
-    config += '\nOTHER_LDFLAGS = $(inherited) $(DM_FRAMEWORKS) -framework UIKit -framework Foundation -framework AVFAudio -framework GameController -framework CoreText -lz\n'
+    config += '\nOTHER_LDFLAGS = $(inherited) $(DM_FRAMEWORKS) -framework UIKit -framework Foundation -framework AVFAudio -framework GameController -framework CoreHaptics -framework CoreText -lz\n'
     (gen / 'dm.xcconfig').write_text(config)
     properties = {
         'CFBundleDisplayName': TARGET['game'], 'CFBundleShortVersionString': TARGET['version'],
