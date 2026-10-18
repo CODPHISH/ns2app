@@ -1,0 +1,12 @@
+build/
+__pycache__/
+*.ipa
+*.keys
+*.nsp
+*.nsz
+*.nca
+*.framework/
+*.metallib
+**/Gen/
+**/gen/
+**/*.xcodeproj/

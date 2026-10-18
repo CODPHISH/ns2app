@@ -1,0 +1,21 @@
+{
+  "game": "Super Mario Bros. Wonder",
+  "title_id": "010015100B514000",
+  "version": "1.2.0",
+  "package": "v262144",
+  "device": "Apple TV 4K (3rd generation)",
+  "device_identifier": "AppleTV14,1",
+  "cpu": "apple-a15",
+  "requested_os": "27.0.1",
+  "deployment_minimum": "26.0",
+  "platform": "tvOS",
+  "operation_mode": "console",
+  "render_resolution": [1280, 720],
+  "output_resolution": [1920, 1080],
+  "controls": "system-paired DualSense (one player)",
+  "status": "experimental-unvalidated",
+  "build_ids": {
+    "main": "ff773e90972d544eb79406eaa65396d5",
+    "sdk": "e4bd58cac28cf13a08fb417aa013cdcb"
+  }
+}

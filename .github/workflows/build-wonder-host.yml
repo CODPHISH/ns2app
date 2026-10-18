@@ -1,0 +1,71 @@
+name: Build Wonder tvOS host
+
+on:
+  push:
+    branches: [wonder-tvos]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wonder-host-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    # Standard GitHub-hosted runner. Private repositories are deliberately skipped.
+    if: ${{ github.event.repository.private == false }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Select installed Xcode with tvOS 26 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, os, subprocess
+          candidates = []
+          for app in glob.glob('/Applications/Xcode*.app'):
+              developer = app + '/Contents/Developer'
+              env = dict(os.environ, DEVELOPER_DIR=developer)
+              result = subprocess.run(['xcrun', '--sdk', 'appletvos', '--show-sdk-version'], env=env, capture_output=True, text=True)
+              if result.returncode == 0:
+                  version = tuple(map(int, result.stdout.strip().split('.')))
+                  if version[0] >= 26:
+                      candidates.append((version, developer))
+          if not candidates:
+              raise SystemExit('Runner image has no tvOS 26+ SDK; select a newer standard macOS image.')
+          version, developer = max(candidates)
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write('DEVELOPER_DIR=' + developer + '\n')
+          print('Selected tvOS SDK:', '.'.join(map(str, version)))
+          PY
+      - name: Install XcodeGen
+        run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+      - name: Build unsigned host without game data
+        run: python3 scripts/wonder_actions.py build --out "$RUNNER_TEMP/wonder-host"
+      - name: Upload host only
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-tvos-host
+          path: ${{ runner.temp }}/wonder-host/host.zip
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-host-build-log
+          path: |
+            ${{ runner.temp }}/wonder-host/xcodebuild.log
+            ${{ runner.temp }}/wonder-host/source-list.log
+          if-no-files-found: ignore
+          retention-days: 3

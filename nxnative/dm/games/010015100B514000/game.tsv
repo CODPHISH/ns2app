@@ -1,0 +1,32 @@
+# Wonder 1.2.0: measured NSO IDs; tvOS private profile.
+
+title_id	010015100B514000
+program_id	010015100B514000
+
+name	Super Mario Bros. Wonder
+ipa	SMBWMobile.ipa
+app_category	public.app-category.action-games
+
+build	v0	1.0.0	main=cd6e42aee7934f4d8393cd43893ae25e	sdk=3053b22935e32ddf15ef81997603e5c2
+build	v262144	1.2.0	main=ff773e90972d544eb79406eaa65396d5	sdk=e4bd58cac28cf13a08fb417aa013cdcb
+package	v262144
+shader_versions	v0 v262144
+
+modules	main sdk
+romfs_marker	System/Resource
+zip_store	.zs:.bwav:.metallib
+
+mem_reserve	0x140000000
+mem_alias	0xB8000000
+mem_stack	0x10000000
+app_pool	0xCD500000
+
+nvn_tex_base	0x20
+nvn_tex_slots	32
+nvn_samp_base	0x568
+nvn_img_base	0x120
+nvn_img_slots	8
+nvn_ssbo_bases	vs=0x110 ps=0x510 cs=0x310
+
+shader_groups	/Shader/SecredUber=SecredUber .sharcb=agl /Effect/=effect /Layout/=layout /Shader/=SecredUber
+shader_note	马力欧着色器
