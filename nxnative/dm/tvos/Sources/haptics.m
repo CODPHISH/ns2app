@@ -2,6 +2,7 @@
 #import <CoreHaptics/CoreHaptics.h>
 #include <stdatomic.h>
 #include <stdio.h>
+#include <time.h>
 #include "haptics.h"
 #include "dm_vibration.h"
 
@@ -22,8 +23,15 @@ static GCController *selected; // Accessed only on haptic_queue.
 static GCController *requested; // Accessed only on the main queue.
 static TVHapticSide *sides[2];
 static _Atomic int wake_pending;
+static BOOL waiting;
+static uint64_t waiting_generation, timer_serial, last_submitted, last_applied, timeline_generation;
+static uint64_t monotonic_ns(void) {
+    struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t);
+    return (uint64_t)t.tv_sec * NSEC_PER_SEC + t.tv_nsec;
+}
 static void drain(void);
 static void apply(dm_vibration_frame frame);
+static void recover(void);
 static void retry_side(TVHapticSide *side) {
     if (side.retryPending || side.retries >= 3) return;
     side.retryPending = YES;
@@ -34,7 +42,7 @@ static void retry_side(TVHapticSide *side) {
         if (sides[0] != side && sides[1] != side) return;
         side.failed = NO;
         if (generation != dm_vibration_generation()) return;
-        dm_vibration_frame frame; dm_vibration_snapshot(&frame); apply(frame);
+        recover();
     });
 }
 static void wake_driver(void) {
@@ -79,6 +87,7 @@ static id<CHHapticPatternPlayer> update_band(TVHapticSide *side, id<CHHapticPatt
         if (generation == dm_vibration_generation()) return player;
         [player stopAtTime:CHHapticTimeImmediate error:nil]; return nil;
     }
+    if (generation != dm_vibration_generation()) { [player stopAtTime:CHHapticTimeImmediate error:nil]; return nil; }
     if (player && side.sharpnessSupported && [player sendParameters:parameters(amplitude, frequency, NO) atTime:CHHapticTimeImmediate error:&error]) {
         side.sharpnessSupported = NO;
         if (generation == dm_vibration_generation()) return player;
@@ -120,13 +129,66 @@ static void apply(dm_vibration_frame frame) {
         dm_vibration_value v = frame.value[i];
         side.low = update_band(side, side.low, v.low_amplitude, v.low_frequency, frame.generation);
         side.high = update_band(side, side.high, v.high_amplitude, v.high_frequency, frame.generation);
+        if (!side.failed && (v.low_amplitude > 0 || v.high_amplitude > 0)) side.retries = 0;
     }
 }
-static void drain(void) {
-    dm_vibration_frame frame;
-    while (dm_vibration_take(&frame)) apply(frame);
+static void play_timed(dm_vibration_frame frame) {
+    BOOL running = sides[0].low || sides[0].high || sides[1].low || sides[1].high;
+    BOOL audible = frame.value[0].low_amplitude > 0 || frame.value[0].high_amplitude > 0 ||
+                   frame.value[1].low_amplitude > 0 || frame.value[1].high_amplitude > 0;
+    apply(frame);
+    // Anchor once after initial engine startup. Advancing to completion on
+    // every update would accumulate IPC cost and stretch the whole envelope.
+    if (!last_submitted || (!running && audible)) {
+        last_submitted = frame.submitted_ns; last_applied = monotonic_ns();
+    }
 }
-static void create_sides(void) {
+static void recover(void) {
+    // OS recovery adopts current state; an older scheduled frame must not
+    // overwrite it after the engine has recovered.
+    waiting = NO; ++timer_serial;
+    last_submitted = last_applied = 0;
+    dm_vibration_frame latest, queued; dm_vibration_snapshot(&latest);
+    while (dm_vibration_take(&queued)) latest = queued;
+    timeline_generation = latest.generation;
+    play_timed(latest);
+}
+static void drain(void) {
+    uint64_t generation = dm_vibration_generation();
+    if (waiting) {
+        if (waiting_generation == generation) return;
+        // A cancellation must not wait behind an earlier effect's timer.
+        waiting = NO; ++timer_serial;
+    }
+    dm_vibration_frame frame;
+    while (dm_vibration_take(&frame)) {
+        uint64_t now = monotonic_ns();
+        if (timeline_generation != frame.generation || now - frame.submitted_ns > 100000000ull) {
+            timeline_generation = frame.generation; last_submitted = last_applied = 0;
+        }
+        // Preserve spacing when engine startup or IPC briefly stalls. A queued
+        // impact followed by zero must not become two calls in the same instant.
+        uint64_t due = last_submitted && frame.submitted_ns >= last_submitted ?
+            last_applied + frame.submitted_ns - last_submitted : now;
+        if (due > now && due - now <= 100000000ull) {
+            waiting = YES; waiting_generation = frame.generation;
+            uint64_t serial = ++timer_serial;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(due - now)), haptic_queue, ^{
+                if (serial != timer_serial) return;
+                waiting = NO;
+                if (monotonic_ns() - frame.submitted_ns > 100000000ull) {
+                    // A delayed timer is subject to the same stale policy as
+                    // the FIFO; never briefly replay an old hit before a stop.
+                    recover();
+                } else play_timed(frame);
+                drain();
+            });
+            return;
+        }
+        play_timed(frame);
+    }
+}
+static void create_sides(uint64_t revision) {
     unsigned mask = 0;
     GCDeviceHaptics *device = selected.haptics;
     NSArray *localities = @[GCHapticsLocalityLeftHandle, GCHapticsLocalityRightHandle];
@@ -145,7 +207,8 @@ static void create_sides(void) {
                 if (sides[i] != s) return;
                 stop_side(s); s.failed = NO;
                 fprintf(stderr, "haptics: engine stopped (%ld)\n", (long)reason);
-                retry_side(s);
+                dm_vibration_frame f; dm_vibration_snapshot(&f);
+                if (f.value[i].low_amplitude > 0 || f.value[i].high_amplitude > 0) retry_side(s);
             });
         };
         side.engine.resetHandler = ^{
@@ -156,33 +219,36 @@ static void create_sides(void) {
                 // Recreate players from current accepted values only; values
                 // preceding a focus or connection reset cannot replay here.
                 s.retries = 0;
-                dm_vibration_frame f; dm_vibration_snapshot(&f);
-                apply(f);
+                recover();
             });
         };
         sides[i] = side; mask |= 1u << i;
     }
-    dm_vibration_set_available(mask);
+    dm_vibration_controller_mount(mask, revision);
     fprintf(stderr, "haptics: %s left=%d right=%d; two HD bands per handle\n", selected.vendorName.UTF8String ?: "no controller", !!(mask & 1), !!(mask & 2));
 }
 void front_tv_haptics_select(GCController *controller) {
     initialize();
     if (requested == controller) return;
     requested = controller;
-    dm_vibration_set_available(0);
+    uint64_t revision = dm_vibration_controller_begin();
     dispatch_async(haptic_queue, ^{
-        if (selected == controller) return;
-        dm_vibration_set_available(0); destroy_sides(); selected = controller;
-        create_sides();
+        destroy_sides(); selected = controller;
+        create_sides(revision);
     });
 }
 void front_tv_haptics_active(int active) {
-    initialize(); dm_vibration_set_active(active);
+    initialize();
+    static int was_active;
+    if (was_active == !!active) return;
+    was_active = !!active; dm_vibration_set_active(active);
     if (active) dispatch_async(haptic_queue, ^{
         for (int i = 0; i < 2; ++i) { sides[i].failed = NO; sides[i].retries = 0; }
+        recover();
     });
 }
 void front_tv_haptics_reset(void) {
     initialize();
-    dispatch_async(haptic_queue, ^{ dm_vibration_set_available(0); destroy_sides(); create_sides(); });
+    uint64_t revision = dm_vibration_controller_begin();
+    dispatch_async(haptic_queue, ^{ destroy_sides(); create_sides(revision); });
 }

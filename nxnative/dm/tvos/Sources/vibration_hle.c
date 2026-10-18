@@ -16,7 +16,7 @@ HLE_FORCE("_ZN2nn3hid24IsVibrationDeviceMountedERKNS0_21VibrationDeviceHandleE",
 HLE_FORCE("_ZN2nn3hid27BeginForcedVibrationSessionEv", "tvOS forced vibration session", void, vib_force_begin, void) { dm_vibration_force(1); }
 HLE_FORCE("_ZN2nn3hid25EndForcedVibrationSessionEv", "tvOS forced vibration session end", void, vib_force_end, void) { dm_vibration_force(0); }
 
-HLE_FORCE("_ZN2nn3hid6detail15PermitVibrationEb", "replace hid permission service", Result, vib_detail_permit, unsigned on) { dm_vibration_permit(on); return RES_OK; }
+HLE_FORCE("_ZN2nn3hid6detail15PermitVibrationEb", "replace hid permission service", Result, vib_detail_permit, unsigned on) { dm_vibration_permit((uint8_t)on); return RES_OK; }
 HLE_FORCE("_ZN2nn3hid6detail20IsVibrationPermittedEPb", "replace hid permission query", Result, vib_detail_permitted, uint8_t *out) { *out = dm_vibration_permitted(); return RES_OK; }
 HLE_FORCE("_ZN2nn3hid6detail27BeginPermitVibrationSessionEv", "replace hid forced session service", Result, vib_detail_begin, void) { dm_vibration_force(1); return RES_OK; }
 HLE_FORCE("_ZN2nn3hid6detail25EndPermitVibrationSessionEv", "replace hid forced session end", Result, vib_detail_end, void) { dm_vibration_force(0); return RES_OK; }

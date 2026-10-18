@@ -25,6 +25,8 @@ void dm_vibration_actual(uint32_t handle, dm_vibration_value *out);
 // serial queue. Changes of controller/focus invalidate all queued old effects.
 void dm_vibration_set_wake(void (*wake)(void));
 void dm_vibration_set_available(unsigned sides);
+uint64_t dm_vibration_controller_begin(void);
+void dm_vibration_controller_mount(unsigned sides, uint64_t revision);
 void dm_vibration_set_active(int active);
 int dm_vibration_take(dm_vibration_frame *out);
 void dm_vibration_snapshot(dm_vibration_frame *out);

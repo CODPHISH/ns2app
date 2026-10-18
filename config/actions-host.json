@@ -37,7 +37,7 @@
     "c1_full.tsv": "1bedf94a46b7b8a2b77d2b941e38f8324eeb378be80e9b4ccdca4b3092e2c98a"
   },
   "files_sha256": {
-    ".github/workflows/build-wonder-host.yml": "68da1117dc5dcf09a6c0f1f9ad0b330649f0252e8a9bd1bcc9c54e4974609836",
+    ".github/workflows/build-wonder-host.yml": "775010e0e209d76825d4e676c5da6ffd823e96ca23b13dffb114b644bce52ece",
     ".gitignore": "70fe36b8bdf3c2e30e8e679c7bc513a0caa5cccf61ccc0b5c4419d8f62e45d48",
     "README.md": "d7a95c469153bbe9445fd9c3734791992d227565ab3dc6583d45641c2d393ae7",
     "config/appletv4k3.json": "279980b6a9288e3283f07c30b743d6dc00d0749a00ef29b74856dd912966f4b7",
@@ -105,7 +105,7 @@
     "nxnative/dm/host/dm_textbox_core.h": "1e7d0c5ad4562973ea11cabcb06f1b5f3349a17a19018359edd8ef001704d46e",
     "nxnative/dm/host/dm_uiscreen.h": "065c1f1e492eec8372158e10c6315b9a46f311ce2d3e359b0972b3912a02229a",
     "nxnative/dm/host/dm_unit.h": "81de9cb4e1b048200b952b5e5fdc32e1de4001a751c5826a58e3c044781d8ab2",
-    "nxnative/dm/host/dm_vibration.h": "ac25a01f6759a3ad7429ebe7d6804f0c6de377828b5b00dd321d1569058611c5",
+    "nxnative/dm/host/dm_vibration.h": "9f764961dd38b8a560fd308d522958b1566c98ddb73f0028f2d5440e6da33e4a",
     "nxnative/dm/host/dm_widget.h": "f267a3c11ff93aa8f95a8549729a8feb84de92379289ea19e35fba98943c15f7",
     "nxnative/dm/host/dm_world.h": "85b52c278e43d25a51ff70dd47dbb3b7d2e5afacbdede19a7de9476bbe0ccf79",
     "nxnative/dm/host/entry.S": "ac753892dcc7d1bfdd940a6935f73d627060b1790106569cffc4fab2a1b0a102",
@@ -148,6 +148,8 @@
     "nxnative/dm/host/main.c": "08360c13e8880152f7f3fd4fcb4191a58db482c3b712b17d637a4cdbeabd379c",
     "nxnative/dm/host/memstat.m": "20bf5f5edac09a76e17deffdb97c924e7a974d9cc37d07d4b2c088f606c03e88",
     "nxnative/dm/host/probe.c": "f7022478676d429b0b2f5987679a9f82b53db4c897edbe11c92e6939f8e26a4c",
+    "nxnative/dm/host/tests/t_audio.c": "6c585d64664d6c4f0069029623cdbb6830fbc09cb4282aa7aab0e5e72d1dad7d",
+    "nxnative/dm/host/tests/t_audio_spsc.c": "26ce35993c33aa18ca9fb2f40e546012955a2a93f71be8766f5c9a8bd06d8e33",
     "nxnative/dm/host/thread.c": "329faccdcf62d835b91818a7a808011b66c7bb7c03b6d7ec3242c4009be3b35e",
     "nxnative/dm/host/touch_mac.h": "2101a4bfed822a9dfd2f285600455e92168f6853d0b45207b8e7755ad1142bcb",
     "nxnative/dm/ios/Sources/dm_touch_controls.c": "0b7aff16780893661713d5d3d9f7ab623be15013404a8e26b1ffacb2b795d560",
@@ -384,13 +386,17 @@
     "nxnative/dm/third_party/vulkan-headers/include/vulkan/vulkan_vi.h": "a53e35bb1b3113e6ef4932cb9358a27861a198d7865227ecd93555fecc73dd68",
     "nxnative/dm/tvos/Sources/front_tvos.m": "66ad33a3f71a46ca3e6e4e9839c5efc2e489331980babbba535921c187bd5704",
     "nxnative/dm/tvos/Sources/haptics.h": "a7e877fcd49ac2b69698d5c938fad31ae8aec25ef9e150253f4da01e9e5f0758",
-    "nxnative/dm/tvos/Sources/haptics.m": "96043826f392245caa553edef64e1a7a235debed52a69d1cf72d18abc503cdc9",
+    "nxnative/dm/tvos/Sources/haptics.m": "9fe8e6497851ecb0bedf6d3307d3a882fa76b2d957ce7c116a2ce327c4a1c9b9",
     "nxnative/dm/tvos/Sources/main.m": "27d6e5eb745a72a637643966cc428dfbbcd043f6fa7e7003765c5648b95bfabc",
     "nxnative/dm/tvos/Sources/msl_source.c": "1b3ef8bca7acd1fc59d901a23c058ca3fcfa77c06ed778c8b62071ce5c1cb521",
     "nxnative/dm/tvos/Sources/msl_source.h": "c7a77903e2a7dda34243ebf3354e5409acae89766bc9bb3f30b5b7daccf13765",
-    "nxnative/dm/tvos/Sources/vibration.c": "aff41a3411ac145833a68ec1c8d235f410970d3d68a0b2253298b8d14e191560",
-    "nxnative/dm/tvos/Sources/vibration_hle.c": "1079a6b11c6041e090bb6f7dcb9d4ffec0f5c183ccfea83b31e1f4724d217321",
-    "scripts/wonder_actions.py": "d0144f56643786559417fdcfae796e8eed4b54474591e986857058ae8caaa3ff"
+    "nxnative/dm/tvos/Sources/vibration.c": "ed3a3fbf336a93e2ae8c8ed94094fb23afa7e1b3e717e54e6475842c52d3c85f",
+    "nxnative/dm/tvos/Sources/vibration_hle.c": "c9d49cc7e698876bc981d4ec8ef3082486bc74d369f9995b3f110a5e349a76e2",
+    "scripts/wonder_actions.py": "39c4bb91ca6c077c49543cf5fc18b17f159df258addeb0fce8271b53b990f1e3",
+    "tests/native/wonder_audio_lifecycle.c": "6f80b04a6c5c2d9c28e96185b505baacf215e390e19386562555682ab14a0f5f",
+    "tests/native/wonder_haptics_lifecycle.m": "a0ae4ea024590f9a43226812ec7dbf9eec35d83715b4d28320a74c65657d1db0",
+    "tests/native/wonder_vibration_clock.c": "0c2c14134901d848dba15ce15903d45e3239c9904ff50dcb9756efc20eb99916",
+    "tests/test_wonder_lifecycle.py": "582457ac6be2617f02fedfe953d2fcea1359f5abf24ed699c66e0c1005616261"
   },
   "unsupported_entry_points": [],
   "untranslated_shaders": []

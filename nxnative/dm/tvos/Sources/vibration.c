@@ -10,6 +10,7 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned available, queued, first;
 static int active, permitted = 1, forced;
 static uint64_t generation = 1;
+static uint64_t controller_revision;
 static dm_vibration_value current[2];
 static dm_vibration_frame frames[QUEUE_SIZE];
 static void (*wake_driver)(void);
@@ -75,6 +76,20 @@ void dm_vibration_set_wake(void (*wake)(void)) {
 void dm_vibration_set_available(unsigned sides) {
     pthread_mutex_lock(&lock);
     if (available != (sides & 3)) { available = sides & 3; reset_locked(); }
+    void (*wake)(void) = wake_driver; pthread_mutex_unlock(&lock); if (wake) wake();
+}
+uint64_t dm_vibration_controller_begin(void) {
+    pthread_mutex_lock(&lock);
+    uint64_t revision = ++controller_revision;
+    available = 0; reset_locked();
+    void (*wake)(void) = wake_driver; pthread_mutex_unlock(&lock); if (wake) wake();
+    return revision;
+}
+void dm_vibration_controller_mount(unsigned sides, uint64_t revision) {
+    pthread_mutex_lock(&lock);
+    if (revision == controller_revision && available != (sides & 3)) {
+        available = sides & 3; reset_locked();
+    }
     void (*wake)(void) = wake_driver; pthread_mutex_unlock(&lock); if (wake) wake();
 }
 void dm_vibration_set_active(int on) {

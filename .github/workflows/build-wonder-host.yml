@@ -51,6 +51,17 @@ jobs:
         run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
       - name: Build unsigned host without game data
         run: python3 scripts/wonder_actions.py build --out "$RUNNER_TEMP/wonder-host"
+      - name: Verify audio and controller lifecycle with synthetic faults
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_wonder_lifecycle.py AudioLifecycleTests HapticsDriverLifecycleTests -v 2>&1 | tee "$RUNNER_TEMP/wonder-host/native-lifecycle.log"
+          mkdir -p "$RUNNER_TEMP/wonder-native"
+          python3 nxnative/dm/games/game.py header 010015100B514000 "$RUNNER_TEMP/wonder-native/game_profile.h"
+          for test in t_audio t_audio_spsc; do
+            clang -O1 -Wno-unused-function -I nxnative/dm/host -I "$RUNNER_TEMP/wonder-native" "nxnative/dm/host/tests/$test.c" -framework AudioToolbox -o "$RUNNER_TEMP/wonder-native/$test"
+            "$RUNNER_TEMP/wonder-native/$test" 2>&1 | tee -a "$RUNNER_TEMP/wonder-host/native-lifecycle.log"
+          done
       - name: Upload host only
         uses: actions/upload-artifact@v4
         with:
@@ -67,5 +78,6 @@ jobs:
           path: |
             ${{ runner.temp }}/wonder-host/xcodebuild.log
             ${{ runner.temp }}/wonder-host/source-list.log
+            ${{ runner.temp }}/wonder-host/native-lifecycle.log
           if-no-files-found: ignore
           retention-days: 3

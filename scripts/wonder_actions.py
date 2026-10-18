@@ -97,6 +97,11 @@ def export_project(args):
     }
     for name in ('dm_touch_controls.c', 'dm_touch_controls.h'):
         copies[ROOT / 'nxnative/dm/ios/Sources' / name] = dest / 'nxnative/dm/ios/Sources' / name
+    # Synthetic fault harnesses and the two relevant upstream audio checks.
+    for name in ('tests/test_wonder_lifecycle.py', 'tests/native/wonder_vibration_clock.c',
+                 'tests/native/wonder_audio_lifecycle.c', 'tests/native/wonder_haptics_lifecycle.m',
+                 'nxnative/dm/host/tests/t_audio.c', 'nxnative/dm/host/tests/t_audio_spsc.c'):
+        copies[ROOT / name] = dest / name
     for source in (ROOT / 'nxnative').glob('LICENSE*'):
         copies[source] = dest / 'nxnative' / source.name
     for source, target in copies.items():
